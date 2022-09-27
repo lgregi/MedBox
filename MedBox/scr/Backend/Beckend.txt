@@ -1,0 +1,547 @@
+NTPClient timeClient(ntpUDP, "pool.ntp.org"); // Solicitaremos o horário de pool.ntp.org
+int currentHour;// define uma variável do tipo inteira
+int currentMinute; // define uma variável do tipo inteira
+String SaveUSER; // define uma variável do tipo String
+String SaveSENHA; // define uma variável do tipo String
+int H1; // define uma variável do tipo inteira
+int H2; // define uma variável do tipo inteira
+int H3; // define uma variável do tipo inteira
+int H4; // define uma variável do tipo inteira
+String SaveH1; // define uma variável do tipo String
+String SaveH2; // define uma variável do tipo String
+String SaveH3; // define uma variável do tipo String
+String SaveH4; // define uma variável do tipo String
+bool Debounce = true; // define uma variável do tipo boolena
+bool Turned = true; // define uma variável do tipo boolena
+const int stepsPerRevolution = 512; // define uma constante do tipo inteira
+Stepper myStepper(stepsPerRevolution, IN1, IN3, IN2, IN4); // Inicialize uma instância da biblioteca 
+AccelStepper chamada stepper. Controlande do motor de passo com quatro fios e os pinos de 
+entrada. A ordem dos pinos é IN1, IN3, IN2, IN4
+void setup() {
+ Serial.begin(115200); // define a taxa de comunicação de bits por segundo
+ pinMode(buzzer,OUTPUT); // define o pino do "buzzer" como OUTPUT
+ myStepper.setSpeed(500); // Define a velocidade em passos por segundo.
+ WiFi.mode(WIFI_STA); // define o modo de conexão como "WIFI_STA"
+ WiFi.begin(ssid, password); // iniciar a conexão com nome e senha da rede
+ if (WiFi.waitForConnectResult() != WL_CONNECTED) { // se a conexão com o Wi.Fi falhar
+ Serial.println("WiFi Failed!"); // printa na tela a mensagem <<Printa "Wifi Failed!"
+ return; // retorna a condição da variável
+ }
+ Serial.println(); // printa na tela
+ Serial.print("IP Address: ");// printa na tela
+ Serial.println(WiFi.localIP());// printa na tela
+ server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){ // <<O nome da página é 
+exatamente o primeiro parâmetro, por exemplo: nessa linha o nome da página é “/”>>
+ request->send_P(200, "text/html", index_html); // Executa a String "index_html" como text/html 
+no endereço web 
+ });
+ server.on("/get", HTTP_GET, [] (AsyncWebServerRequest *request) { // <<O nome da página é 
+exatamente o primeiro parâmetro, por exemplo: nessa linha o nome da página é “/get”>>
+ String USER;// define uma variável do tipo String
+ String SENHA;// define uma variável do tipo String
+ USER = request->getParam(PARAM_INPUT_1)->value(); // <<Solicita o parâmetro 
+"PARAM_INPUT1", atribuindo o valor a variável "USER">>
+ SENHA = request->getParam(PARAM_INPUT_2)->value(); // <<Solicita o parâmetro 
+"PARAM_INPUT2", atribuindo o valor a variável "SENHA">>
+SaveUSER = USER; // <<Atribuí o valor da variável "User" na variável "SaveUSER">>
+SaveSENHA = SENHA; // <<Atribuí o valor da variável "SENHA" na variável "SaveSenha">>
+ Serial.println("Usuario: " + USER); // printa na tela a mensagem 
+ Serial.println("Senha: " + SENHA); // printa na tela a mensagem 
+ Serial.println(""); // printa na tela a mensagem 
+ request->send(200,"text/html","<!DOCTYPE html><html>" // Executa o código HTML como 
+text/html no endereço web 
+// <<Código cria 4 botões que recebem as variaveis "H1", "H2", "H3" e "H4", Onde os valores podem 
+ser alterados e enviados para o ESP. Cria uma divisão que mostra o nome do "USER">>
+"<head>"
+"<link rel='preconnect' href='https://fonts.googleapis.com'>"
+"<link rel='preconnect' href='https://fonts.gstatic.com' crossorigin>" 
+"<link href='https://fonts.googleapis.com/css2?family=Lato&display=swap' rel='stylesheet'>" 
+"<title>Projeto TCC Fecap</title>"
+"<style>"
+ " *{"
+ " font-family: 'Lato', sans-serif;"
+"}"
+"body{"
+ " background-color:hsl(123, 53%, 28%);"
+"}"
+".svg-icon{"
+ " height: 20px;"
+ " margin-bottom: -5px;"
+ " margin-left: 10px;"
+ " margin-right: 5px;"
+"}"
+".Time{ "
+ " display: block;"
+ " border-radius: 30px;"
+ " border: 1px solid rgba(0,0,0,0.2);"
+ " padding: 10px;"
+ " margin: 10px 0;"
+"}"
+".user{"
+ " background-color:white;"
+ " display: block;"
+ " border-radius: 30px;"
+ " border: 1px solid rgba(0,0,0,0.2);"
+ " padding: 5px;"
+ " position: relative;"
+ " width: 200px;"
+ " height: 20px;"
+ " margin: 10px 0;"
+"}"
+".user input{"
+" font-size: 15px;"
+" padding: 10px 20px 10px 5px;"
+" border: none;"
+" outline: none;"
+" background: none;"
+"}"
+".BackSub{"
+" margin: -50px auto;"
+" position:fixed;"
+" width: 350px;"
+" background-color: rgb(255, 255, 255);"
+" padding: 45px;"
+" border-radius: 10%;"
+"}"
+".forms{"
+" text-align: center;"
+" margin: 100px auto;"
+" width: 450px;"
+" padding: 20px;"
+" border-radius: 10%;"
+"}"
+".tittle, .sub-tittle{"
+"text-align: center;"
+"color:#505050;"
+"}"
+".tittle{"
+" font-weight:bolder;"
+" font-size: 25px;"
+"}"
+"button.Enviar{"
+ " width: 100%;"
+ " padding: 12px 10px;"
+ " border: none;"
+ " font-size: 15px;"
+ " border-radius: 30px;"
+ " background-color:hsl(123, 53%, 28%) ;"
+" color: white;"
+" margin-bottom: 5px;"
+"}"
+"button.Enviar:hover{"
+" background-color:hsl(123, 35%, 24%) ;"
+"}"
+"</style>"
+"</head>"
+"<body>"
+ "<div class='user'>"
+ " <svg class='svg-icon' viewBox='0 0 20 20'>"
+ " <path d='M12.075,10.812c1.358-0.853,2.242-2.507,2.242-4.037c0-2.181-1.795-4.618-
+4.198-4.618S5.921,4.594,5.921,6.775c0,1.53,0.884,3.185,2.242,4.037c-3.222,0.865-5.6,3.807-
+5.6,7.298c0,0.23,0.189,0.42,0.42,0.42h14.273c0.23,0,0.42-0.189,0.42-
+0.42C17.676,14.619,15.297,11.677,12.075,10.812 M6.761,6.775c0-2.162,1.773-3.778,3.358-
+3.778s3.359,1.616,3.359,3.778c0,2.162-1.774,3.778-3.359,3.778S6.761,8.937,6.761,6.775 
+M3.415,17.69c0.218-3.51,3.142-6.297,6.704-
+6.297c3.562,0,6.486,2.787,6.705,6.297H3.415z'></path>"
+ " </svg> Seu user &colon; "+SaveUSER+""
+ " </div>"
+ " <div class='forms'>"
+ " <div class='BackSub'>"
+"<form action = /set>"
+ " <div class='tittle'>Projeto TCC Fecap</div>"
+ " <div class='sub-tittle'>Controle dos Horarios</div>"
+ " <p></p>"
+ " <center>"
+ " <svg class='svg-icon' viewBox='0 0 20 20'>"
+ " <path d='M10.25,2.375c-4.212,0-7.625,3.413-7.625,7.625s3.413,7.625,7.625,7.625s7.625-
+3.413,7.625-7.625S14.462,2.375,10.25,2.375M10.651,16.811v-0.403c0-0.221-0.181-0.401-0.401-
+0.401s-0.401,0.181-0.401,0.401v0.403c-3.443-0.201-6.208-2.966-6.409-6.409h0.404c0.22,0,0.401-
+0.181,0.401-
+0.401S4.063,9.599,3.843,9.599H3.439C3.64,6.155,6.405,3.391,9.849,3.19v0.403c0,0.22,0.181,0.401,
+0.401,0.401s0.401-0.181,0.401-0.401V3.19c3.443,0.201,6.208,2.965,6.409,6.409h-0.404c-0.22,0-
+0.4,0.181-0.4,0.401s0.181,0.401,0.4,0.401h0.404C16.859,13.845,14.095,16.609,10.651,16.811 
+M12.662,12.412c-0.156,0.156-0.409,0.159-0.568,0l-2.127-
+2.129C9.986,10.302,9.849,10.192,9.849,10V5.184c0-0.221,0.181-0.401,0.401-
+0.401s0.401,0.181,0.401,0.401v4.651l2.011,2.008C12.818,12.001,12.818,12.256,12.662,12.412'></p
+ath>"
+ " </svg>"
+"1&#186 Horario <input type='time' name = 'input3' class='Time' value = '"+SaveH1+"'>"
+"<p></p>"
+"<svg class='svg-icon' viewBox='0 0 20 20'>"
+" <path d='M10.25,2.375c-4.212,0-7.625,3.413-7.625,7.625s3.413,7.625,7.625,7.625s7.625-
+3.413,7.625-7.625S14.462,2.375,10.25,2.375M10.651,16.811v-0.403c0-0.221-0.181-0.401-0.401-
+0.401s-0.401,0.181-0.401,0.401v0.403c-3.443-0.201-6.208-2.966-6.409-6.409h0.404c0.22,0,0.401-
+0.181,0.401-
+0.401S4.063,9.599,3.843,9.599H3.439C3.64,6.155,6.405,3.391,9.849,3.19v0.403c0,0.22,0.181,0.401,
+0.401,0.401s0.401-0.181,0.401-0.401V3.19c3.443,0.201,6.208,2.965,6.409,6.409h-0.404c-0.22,0-
+0.4,0.181-0.4,0.401s0.181,0.401,0.4,0.401h0.404C16.859,13.845,14.095,16.609,10.651,16.811 
+M12.662,12.412c-0.156,0.156-0.409,0.159-0.568,0l-2.127-
+2.129C9.986,10.302,9.849,10.192,9.849,10V5.184c0-0.221,0.181-0.401,0.401-
+0.401s0.401,0.181,0.401,0.401v4.651l2.011,2.008C12.818,12.001,12.818,12.256,12.662,12.412'></p
+ath>"
+"</svg>"
+"2&#186 Horario <input type='time' name = 'input4' class='Time' value = '"+SaveH2+"'>"
+"<p></p>"
+"<svg class='svg-icon' viewBox='0 0 20 20'>"
+ " <path d='M10.25,2.375c-4.212,0-7.625,3.413-7.625,7.625s3.413,7.625,7.625,7.625s7.625-
+3.413,7.625-7.625S14.462,2.375,10.25,2.375M10.651,16.811v-0.403c0-0.221-0.181-0.401-0.401-
+0.401s-0.401,0.181-0.401,0.401v0.403c-3.443-0.201-6.208-2.966-6.409-6.409h0.404c0.22,0,0.401-
+0.181,0.401-
+0.401S4.063,9.599,3.843,9.599H3.439C3.64,6.155,6.405,3.391,9.849,3.19v0.403c0,0.22,0.181,0.401,
+0.401,0.401s0.401-0.181,0.401-0.401V3.19c3.443,0.201,6.208,2.965,6.409,6.409h-0.404c-0.22,0-
+0.4,0.181-0.4,0.401s0.181,0.401,0.4,0.401h0.404C16.859,13.845,14.095,16.609,10.651,16.811 
+M12.662,12.412c-0.156,0.156-0.409,0.159-0.568,0l-2.127-
+2.129C9.986,10.302,9.849,10.192,9.849,10V5.184c0-0.221,0.181-0.401,0.401-
+0.401s0.401,0.181,0.401,0.401v4.651l2.011,2.008C12.818,12.001,12.818,12.256,12.662,12.412'></p
+ath>"
+"</svg>"
+"3&#186 Horario <input type='time' name = 'input5' class='Time' value = '"+SaveH3+"'>"
+"<p></p>"
+"<svg class='svg-icon' viewBox='0 0 20 20'>"
+ "<path d='M10.25,2.375c-4.212,0-7.625,3.413-7.625,7.625s3.413,7.625,7.625,7.625s7.625-
+3.413,7.625-7.625S14.462,2.375,10.25,2.375M10.651,16.811v-0.403c0-0.221-0.181-0.401-0.401-
+0.401s-0.401,0.181-0.401,0.401v0.403c-3.443-0.201-6.208-2.966-6.409-6.409h0.404c0.22,0,0.401-
+0.181,0.401-
+0.401S4.063,9.599,3.843,9.599H3.439C3.64,6.155,6.405,3.391,9.849,3.19v0.403c0,0.22,0.181,0.401,
+0.401,0.401s0.401-0.181,0.401-0.401V3.19c3.443,0.201,6.208,2.965,6.409,6.409h-0.404c-0.22,0-
+0.4,0.181-0.4,0.401s0.181,0.401,0.4,0.401h0.404C16.859,13.845,14.095,16.609,10.651,16.811 
+M12.662,12.412c-0.156,0.156-0.409,0.159-0.568,0l-2.127-
+2.129C9.986,10.302,9.849,10.192,9.849,10V5.184c0-0.221,0.181-0.401,0.401-
+0.401s0.401,0.181,0.401,0.401v4.651l2.011,2.008C12.818,12.001,12.818,12.256,12.662,12.412'></p
+ath>"
+"</svg>"
+"4&#186 Horario <input type='time' name = 'input6' class='Time' value = '"+SaveH4+"'>"
+"<p></p>"
+"</center>"
+"<button value='Submit' class='Enviar'>Enviar</button>"
+"</form>"
+"</div>"
+"</div>"
+ "</div>"
+ "</div>"
+ "</body>"
+ "</html>");
+ });
+ 
+ server.on("/set", HTTP_GET, [] (AsyncWebServerRequest *request) { <<O nome da página é 
+exatamente o primeiro parâmetro, por exemplo: nessa linha o nome da página é “/set”>>
+String PARAM_3 = request->getParam(PARAM_INPUT_3)->value();// solicita um valor do html, 
+salvando ele na String
+ String PARAM_4 = request->getParam(PARAM_INPUT_4)->value();// solicita um valor do html, 
+salvando ele na String
+ String PARAM_5 = request->getParam(PARAM_INPUT_5)->value();// solicita um valor do html, 
+salvando ele na String
+ String PARAM_6 = request->getParam(PARAM_INPUT_6)->value();// solicita um valor do html, 
+salvando ele na String
+ String PARAM_3_HOR = PARAM_3.substring(0, 2);// retorna a parte da string entre os índices 
+inicial e final
+ String PARAM_3_MIN = PARAM_3.substring(3, 5);// retorna a parte da string entre os índices 
+inicial e final
+ String PARAM_4_HOR = PARAM_4.substring(0, 2);// retorna a parte da string entre os índices 
+inicial e final
+ String PARAM_4_MIN = PARAM_4.substring(3, 5);// retorna a parte da string entre os índices 
+inicial e final
+ String PARAM_5_HOR = PARAM_5.substring(0, 2);// retorna a parte da string entre os índices 
+inicial e final
+ String PARAM_5_MIN = PARAM_5.substring(3, 5);// retorna a parte da string entre os índices 
+inicial e final
+ String PARAM_6_HOR = PARAM_6.substring(0, 2);// retorna a parte da string entre os índices 
+inicial e final
+ String PARAM_6_MIN = PARAM_6.substring(3, 5);// retorna a parte da string entre os índices 
+inicial e final
+ PARAM_3 = PARAM_3_HOR + PARAM_3_MIN;// salva os dois índice em uma variável
+ PARAM_4 = PARAM_4_HOR + PARAM_4_MIN;// salva os dois índice em uma variável
+ PARAM_5 = PARAM_5_HOR + PARAM_5_MIN;// salva os dois índice em uma variável
+ PARAM_6 = PARAM_6_HOR + PARAM_6_MIN;// salva os dois índice em uma variável
+ H1 = PARAM_3.toInt();// transforma em inteiro
+ H2 = PARAM_4.toInt();// transforma em inteiro
+ H3 = PARAM_5.toInt();// transforma em inteiro
+ H4 = PARAM_6.toInt();// transforma em inteiro
+ SaveH1 = PARAM_3_HOR + ":" + PARAM_3_MIN;// salva os dois índice em uma variável
+ SaveH2 = PARAM_4_HOR + ":" + PARAM_4_MIN;// salva os dois índice em uma variável
+ SaveH3 = PARAM_5_HOR + ":" + PARAM_5_MIN;// salva os dois índice em uma variável
+ SaveH4 = PARAM_6_HOR + ":" + PARAM_6_MIN;// salva os dois índice em uma variável
+ String USER = SaveUSER;// cria uma variável do tipo String
+ String SENHA = SaveSENHA;// cria uma variável do tipo String
+ request->send(200,"text/html","<!DOCTYPE html><html>" // Executa o código HTML como 
+text/html no endereço web 
+// <<Código cria 4 botões que recebem as variaveis "H1", "H2", "H3" e "H4", Onde os valores podem 
+ser alterados e enviados para o ESP. Cria uma divisão que mostra o nome do "USER">>
+"<head>"
+"<link rel='preconnect' href='https://fonts.googleapis.com'>"
+"<link rel='preconnect' href='https://fonts.gstatic.com' crossorigin>" 
+"<link href='https://fonts.googleapis.com/css2?family=Lato&display=swap' rel='stylesheet'>" 
+"<title>Projeto TCC Fecap</title>"
+"<style>"
+ " *{"
+ " font-family: 'Lato', sans-serif;"
+"}"
+"body{"
+ " background-color:hsl(123, 53%, 28%);"
+"}"
+".svg-icon{"
+ " height: 20px;"
+ " margin-bottom: -5px;"
+ " margin-left: 10px;"
+ " margin-right: 5px;"
+"}"
+".Time{ "
+ " display: block;"
+ " border-radius: 30px;"
+ " border: 1px solid rgba(0,0,0,0.2);"
+ " padding: 10px;"
+ " margin: 10px 0;"
+"}"
+".user{"
+ " background-color:white;"
+ " display: block;"
+ " border-radius: 30px;"
+ " border: 1px solid rgba(0,0,0,0.2);"
+ " padding: 5px;"
+ " position: relative;"
+ " width: 200px;"
+ " height: 20px;"
+ " margin: 10px 0;"
+"}"
+".user input{"
+" font-size: 15px;"
+" padding: 10px 20px 10px 5px;"
+" border: none;"
+" outline: none;"
+" background: none;"
+"}"
+".BackSub{"
+" margin: -50px auto;"
+" position:fixed;"
+" width: 350px;"
+" background-color: rgb(255, 255, 255);"
+" padding: 45px;"
+" border-radius: 10%;"
+"}"
+".forms{"
+" text-align: center;"
+" margin: 100px auto;"
+" width: 450px;"
+" padding: 20px;"
+" border-radius: 10%;"
+"}"
+".tittle, .sub-tittle{"
+"text-align: center;"
+"color:#505050;"
+"}"
+".tittle{"
+" font-weight:bolder;"
+" font-size: 25px;"
+"}"
+"button.Enviar{"
+ " width: 100%;"
+ " padding: 12px 10px;"
+ " border: none;"
+ " font-size: 15px;"
+ " border-radius: 30px;"
+ " background-color:hsl(123, 53%, 28%) ;"
+" color: white;"
+" margin-bottom: 5px;"
+"}"
+"button.Enviar:hover{"
+" background-color:hsl(123, 35%, 24%) ;"
+"}"
+"</style>"
+"</head>"
+"<body>"
+ "<div class='user'>"
+ " <svg class='svg-icon' viewBox='0 0 20 20'>"
+ " <path d='M12.075,10.812c1.358-0.853,2.242-2.507,2.242-4.037c0-2.181-1.795-4.618-
+4.198-4.618S5.921,4.594,5.921,6.775c0,1.53,0.884,3.185,2.242,4.037c-3.222,0.865-5.6,3.807-
+5.6,7.298c0,0.23,0.189,0.42,0.42,0.42h14.273c0.23,0,0.42-0.189,0.42-
+0.42C17.676,14.619,15.297,11.677,12.075,10.812 M6.761,6.775c0-2.162,1.773-3.778,3.358-
+3.778s3.359,1.616,3.359,3.778c0,2.162-1.774,3.778-3.359,3.778S6.761,8.937,6.761,6.775 
+M3.415,17.69c0.218-3.51,3.142-6.297,6.704-
+6.297c3.562,0,6.486,2.787,6.705,6.297H3.415z'></path>"
+ " </svg> Seu user &colon; "+SaveUSER+""
+ " </div>"
+ " <div class='forms'>"
+ " <div class='BackSub'>"
+"<form action = /set>"
+ " <div class='tittle'>Projeto TCC Fecap</div>"
+ " <div class='sub-tittle'>Controle dos Horarios</div>"
+ " <p></p>"
+ " <center>"
+ " <svg class='svg-icon' viewBox='0 0 20 20'>"
+ " <path d='M10.25,2.375c-4.212,0-7.625,3.413-7.625,7.625s3.413,7.625,7.625,7.625s7.625-
+3.413,7.625-7.625S14.462,2.375,10.25,2.375M10.651,16.811v-0.403c0-0.221-0.181-0.401-0.401-
+0.401s-0.401,0.181-0.401,0.401v0.403c-3.443-0.201-6.208-2.966-6.409-6.409h0.404c0.22,0,0.401-
+0.181,0.401-
+0.401S4.063,9.599,3.843,9.599H3.439C3.64,6.155,6.405,3.391,9.849,3.19v0.403c0,0.22,0.181,0.401,
+0.401,0.401s0.401-0.181,0.401-0.401V3.19c3.443,0.201,6.208,2.965,6.409,6.409h-0.404c-0.22,0-
+0.4,0.181-0.4,0.401s0.181,0.401,0.4,0.401h0.404C16.859,13.845,14.095,16.609,10.651,16.811 
+M12.662,12.412c-0.156,0.156-0.409,0.159-0.568,0l-2.127-
+2.129C9.986,10.302,9.849,10.192,9.849,10V5.184c0-0.221,0.181-0.401,0.401-
+0.401s0.401,0.181,0.401,0.401v4.651l2.011,2.008C12.818,12.001,12.818,12.256,12.662,12.412'></p
+ath>"
+ " </svg>"
+"1&#186 Horario <input type='time' name = 'input3' class='Time' value = '"+SaveH1+"'>"
+"<p></p>"
+"<svg class='svg-icon' viewBox='0 0 20 20'>"
+" <path d='M10.25,2.375c-4.212,0-7.625,3.413-7.625,7.625s3.413,7.625,7.625,7.625s7.625-
+3.413,7.625-7.625S14.462,2.375,10.25,2.375M10.651,16.811v-0.403c0-0.221-0.181-0.401-0.401-
+0.401s-0.401,0.181-0.401,0.401v0.403c-3.443-0.201-6.208-2.966-6.409-6.409h0.404c0.22,0,0.401-
+0.181,0.401-
+0.401S4.063,9.599,3.843,9.599H3.439C3.64,6.155,6.405,3.391,9.849,3.19v0.403c0,0.22,0.181,0.401,
+0.401,0.401s0.401-0.181,0.401-0.401V3.19c3.443,0.201,6.208,2.965,6.409,6.409h-0.404c-0.22,0-
+0.4,0.181-0.4,0.401s0.181,0.401,0.4,0.401h0.404C16.859,13.845,14.095,16.609,10.651,16.811 
+M12.662,12.412c-0.156,0.156-0.409,0.159-0.568,0l-2.127-
+2.129C9.986,10.302,9.849,10.192,9.849,10V5.184c0-0.221,0.181-0.401,0.401-
+0.401s0.401,0.181,0.401,0.401v4.651l2.011,2.008C12.818,12.001,12.818,12.256,12.662,12.412'></p
+ath>"
+"</svg>"
+"2&#186 Horario <input type='time' name = 'input4' class='Time' value = '"+SaveH2+"'>"
+"<p></p>"
+"<svg class='svg-icon' viewBox='0 0 20 20'>"
+ " <path d='M10.25,2.375c-4.212,0-7.625,3.413-7.625,7.625s3.413,7.625,7.625,7.625s7.625-
+3.413,7.625-7.625S14.462,2.375,10.25,2.375M10.651,16.811v-0.403c0-0.221-0.181-0.401-0.401-
+0.401s-0.401,0.181-0.401,0.401v0.403c-3.443-0.201-6.208-2.966-6.409-6.409h0.404c0.22,0,0.401-
+0.181,0.401-
+0.401S4.063,9.599,3.843,9.599H3.439C3.64,6.155,6.405,3.391,9.849,3.19v0.403c0,0.22,0.181,0.401,
+0.401,0.401s0.401-0.181,0.401-0.401V3.19c3.443,0.201,6.208,2.965,6.409,6.409h-0.404c-0.22,0-
+0.4,0.181-0.4,0.401s0.181,0.401,0.4,0.401h0.404C16.859,13.845,14.095,16.609,10.651,16.811 
+M12.662,12.412c-0.156,0.156-0.409,0.159-0.568,0l-2.127-
+2.129C9.986,10.302,9.849,10.192,9.849,10V5.184c0-0.221,0.181-0.401,0.401-
+0.401s0.401,0.181,0.401,0.401v4.651l2.011,2.008C12.818,12.001,12.818,12.256,12.662,12.412'></p
+ath>"
+"</svg>"
+"3&#186 Horario <input type='time' name = 'input5' class='Time' value = '"+SaveH3+"'>"
+"<p></p>"
+"<svg class='svg-icon' viewBox='0 0 20 20'>"
+ "<path d='M10.25,2.375c-4.212,0-7.625,3.413-7.625,7.625s3.413,7.625,7.625,7.625s7.625-
+3.413,7.625-7.625S14.462,2.375,10.25,2.375M10.651,16.811v-0.403c0-0.221-0.181-0.401-0.401-
+0.401s-0.401,0.181-0.401,0.401v0.403c-3.443-0.201-6.208-2.966-6.409-6.409h0.404c0.22,0,0.401-
+0.181,0.401-
+0.401S4.063,9.599,3.843,9.599H3.439C3.64,6.155,6.405,3.391,9.849,3.19v0.403c0,0.22,0.181,0.401,
+0.401,0.401s0.401-0.181,0.401-0.401V3.19c3.443,0.201,6.208,2.965,6.409,6.409h-0.404c-0.22,0-
+0.4,0.181-0.4,0.401s0.181,0.401,0.4,0.401h0.404C16.859,13.845,14.095,16.609,10.651,16.811 
+M12.662,12.412c-0.156,0.156-0.409,0.159-0.568,0l-2.127-
+2.129C9.986,10.302,9.849,10.192,9.849,10V5.184c0-0.221,0.181-0.401,0.401-
+0.401s0.401,0.181,0.401,0.401v4.651l2.011,2.008C12.818,12.001,12.818,12.256,12.662,12.412'></p
+ath>"
+"</svg>"
+"4&#186 Horario <input type='time' name = 'input6' class='Time' value = '"+SaveH4+"'>"
+"<p></p>"
+"</center>"
+"<button value='Submit' class='Enviar'>Enviar</button>"
+"</form>"
+"</div>"
+"</div>"
+ "</div>"
+ "</div>"
+ "</body>"
+ "</html>");
+ });
+server.onNotFound(notFound); // se não for encontrado, chama a função notFound
+server.begin(); // inicializa o servidor
+timeClient.begin();// inicializa a função de tempo
+timeClient.setTimeOffset(0); // Define uma data que é combinada com uma hora do dia com base 
+em um relógio de 24 horas
+ 
+}
+void loop() {
+timeClient.update(); // vai atualizar o horário
+ currentHour = timeClient.getHours(); // traz as horas do cliente
+ currentMinute = timeClient.getMinutes(); // traz os minutos do cliente
+ int currentSecond = timeClient.getSeconds();// traz os segundos do cliente
+ if (currentHour == 3) // adaptaçao ao meridiano de greenwich
+ {
+ currentHour = 0;// define o horário como zero
+ }
+ else if (currentHour == 2)// adaptaçao ao meridiano de greenwich
+ {
+ currentHour = 23; // define o horário como vinte e três 
+ }
+ else if (currentHour == 1)// adaptaçao ao meridiano de greenwich
+ {
+ currentHour = 22;// define o horário como vinte e dois
+ }
+ else if (currentHour == 0)// adaptaçao ao meridiano de greenwich
+ {
+ currentHour = 21; // define o horário como vinte e um
+ }
+ else // Senão
+ {
+ currentHour = currentHour - 3; // define como três horas a menos
+ }
+ int Time = currentHour * 100 + currentMinute; // define o tempo como a hora vezes cem mais 
+minutos
+ if (Time == H1) // <<se time for igual a H1>>
+ {
+ if (Debounce == true) { // <<se "Debounce" for "true" então>>
+ 
+ Debounce = false; // <<Debounce vai ser falso>>
+ 
+ Serial.println("Porta1"); // printa na tela
+digitalWrite(buzzer,HIGH); // <<Ativa a porta "buzzer">>
+myStepper.step(stepsPerRevolution); // definir uma posição de destino do Motor
+ int Sec = 60 - currentSecond; // define uma variável do tipo inteira
+ 
+delay(Sec*1000); // <<Executa um delay de "Sec x 1000"
+digitalWrite(buzzer,LOW); // <<Desativa a porta "buzzer">>
+myStepper.step(-stepsPerRevolution); // definir uma posição de destino do Motor <<O contrario de 
+stepsPerRevolution>>
+ Debounce = true; // <<Debounce vai ser falso>>
+ 
+ }
+}
+ if (Time == H2) // <<se time for igual a H2>>
+ {
+ if (Debounce == true) { // <<se "Debounce" for "true" então>>
+ 
+ Debounce = false; // <<Debounce vai ser falso>>
+ 
+ Serial.println("Porta2"); // printa na tela
+digitalWrite(buzzer,HIGH); // <<Ativa a porta "buzzer">>
+myStepper.step(stepsPerRevolution * 2); // definir uma posição de destino do Motor 
+<<stepsPerRevolution * 2>>
+ int Sec = 60 - currentSecond; // define uma variável do tipo inteira
+ 
+delay(Sec*1000); // <<Executa um delay de "Sec x 1000"
+digitalWrite(buzzer,LOW); // <<Desativa a porta "buzzer">>
+myStepper.step(-stepsPerRevolution * 2); // definir uma posição de destino do Motor <<O contrario 
+de stepsPerRevolution.StepsPerRevolution * 2>>
+ Debounce = true; // <<Debounce vai ser falso>
+if (Time == H3) // <<se time for igual a H3>>
+ {
+ if (Debounce == true) { // <<se "Debounce" for "true" então>>
+ 
+ Debounce = false; // <<Debounce vai ser falso>>
+ 
+ Serial.println("Porta3"); // printa na tela
+ digitalWrite(buzzer,HIGH); // <<Ativa a porta "buzzer">>
+myStepper.step(stepsPerRevolution * 3); // definir uma posição de destino do Motor 
+<<stepsPerRevolution * 3>>
+ int Sec = 60 - currentSecond; // define uma variável do tipo inteira
+ 
+delay(Sec*1000); // <<Executa um delay de "Sec x 1000"
+digitalWrite(buzzer,LOW); // <<Desativa a porta "buzzer">>
+myStepper.step(-stepsPerRevolution * 3); // definir uma posição de destino do Motor <<O contrario 
+de stepsPerRevolution.StepsPerRevolution * 3>>
+ Debounce = true; // <<Debounce vai ser falso>>
+ 
+ }
+}
+if (Time == H4) // <<se time for igual a H3>>
+ {
+ if (Debounce == true) { // <<se "Debounce" for "true" então>>
+ 
+ Debounce = false; // <<Debounce vai ser falso>>
+ 
+ Serial.println("Porta4"); // printa na tela
+ digitalWrite(buzzer,HIGH); // <<Ativa a porta "buzzer">>
+ int Sec = 60 - currentSecond; // define uma variável do tipo inteira
+ 
+delay(Sec*1000); // <<Executa um delay de "Sec x 1000>>
+digitalWrite(buzzer,LOW); // <<Desativa a porta "buzzer">>
+ Debounce = true; // <<Debounce vai ser falso>>
+ }
+}
+stepper.run(); // Move o motor um passo de cada vez
+
+}
